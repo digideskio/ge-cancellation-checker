@@ -24,7 +24,7 @@ The following must be installed and available in your `$PATH`:
 * Python (2.7)
 * [Sendmail](http://en.wikipedia.org/wiki/Sendmail)
 
-**Note:** Many ISP's block port 25, used for email. If you want to set up email notifications for appointment cancellations and your ISP blocks port 25, a good way around this is to [set up Sendmail to send email through Gmail](http://linuxconfig.org/configuring-gmail-as-sendmail-email-relay).
+**Note:** Many ISP's block port 25, used for email. If you want to set up email notifications for appointment cancellations and your ISP blocks port 25, a good way around this is to [set up Sendmail to send email through Gmail](http://linuxconfig.org/configuring-gmail-as-sendmail-email-relay) ([Mac instructions here](http://www.developerfiles.com/how-to-send-emails-from-localhost-mac-os-x-el-capitan/)).
 
 ### Configuration ###
 
