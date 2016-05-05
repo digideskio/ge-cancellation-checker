@@ -30,8 +30,8 @@ if not 'email_to' in settings or not settings['email_to']:
 if not 'init_url' in settings or not settings['init_url']:
     print 'Missing initial URL in config'
     sys.exit()
-if not 'enrollment_location_id' in settings or not settings['enrollment_location_id']:
-    print 'Missing enrollment_location_id in config'
+if not 'enrollment_location_ids' in settings or not settings['enrollment_location_ids']:
+    print 'Missing enrollment_location_ids in config'
     sys.exit()
 if not 'username' in settings or not settings['username']:
     print 'Missing username in config'
@@ -70,17 +70,23 @@ Content-Type: text/html
         log('Failed to send success email')
 
 
-
+# TODO: handle new multi-locatino output
+# it currently looks something like this
+    # {"date":"January 2, 2017","location_id":"5441","msg":"report-interview-time","location_name":"Boston-Logan Global Entry Enrollment Center - ... "}
+    # {"date":"June 24, 2016","location_id":"5444","msg":"report-interview-time","location_name":"Newark Global Entry Enrollment Center - ... "}
+    # {"date":"June 28, 2016","location_id":"5140","msg":"report-interview-time","location_name":"JFK International Global Entry EC -... "}
+    # {"date":"November 11, 2016","location_id":"5446","msg":"report-interview-time","location_name":"San Francisco Global Entry Enrollment Center -  ..."}
+    # {"date":"August 9, 2016","location_id":"9740","msg":"report-interview-time","location_name":"New Orleans Enrollment Center - ... "}
 new_apt_str = check_output(['phantomjs', '%s/ge-cancellation-checker.phantom.js' % PWD]); # get string from PhantomJS script - formatted like 'July 20, 2015'
 new_apt_str = new_apt_str.strip()
 
-try: new_apt = datetime.strptime(new_apt_str, '%B %d, %Y')
-except ValueError as e:
-    log('%s' % new_apt_str)
-    sys.exit()
+# try: new_apt = datetime.strptime(new_apt_str, '%B %d, %Y')
+# except ValueError as e:
+#     log('%s' % new_apt_str)
+#     sys.exit()
 
-if new_apt < CURRENT_INTERVIEW_DATE: # new appointment is newer than existing!
-    send_apt_available_email(CURRENT_INTERVIEW_DATE, new_apt)   
-    log('Found new appointment on %s (current is on %s)!' % (new_apt, CURRENT_INTERVIEW_DATE))
-else:
-    log('No new appointments. Next available on %s (current is on %s)' % (new_apt, CURRENT_INTERVIEW_DATE))
+# if new_apt < CURRENT_INTERVIEW_DATE: # new appointment is newer than existing!
+send_apt_available_email(CURRENT_INTERVIEW_DATE, new_apt)   
+log('Found appointments on %s (current is on %s)!' % (new_apt, CURRENT_INTERVIEW_DATE))
+# else:
+#     log('No new appointments. Next available on %s (current is on %s)' % (new_apt, CURRENT_INTERVIEW_DATE))

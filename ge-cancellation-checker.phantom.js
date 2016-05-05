@@ -65,7 +65,7 @@ page.onCallback = function (data) {
     if (query == 'report-interview-time') {
         data.location_name = locationResolver[data.location_id];
         if (VERBOSE) { console.log('\nNext available appointment at location #', data.location_id, '\n(', data.location_name, ')\n is at >>>>>: ', data.date, '\n'); }
-        else { console.log(msg); }
+        else { console.log(JSON.stringify(data)); }
         return;  
     }
     if (query == 'fatal-error') {
@@ -182,7 +182,7 @@ var searchSteps = [
 ];
 
 function chooseAnotherCenter() {
-    console.log('About to select another center to search...');
+    if (VERBOSE) console.log('About to select another center to search...');
     page.open('https://goes-app.cbp.dhs.gov/main/goes/SelectEnrollmentCenterPreAction.do');
 }
 
@@ -214,7 +214,7 @@ function searchForAppointment(location) {
     searchInterval = setInterval(function () {
         if (loadInProgress) { return; } // not ready yet...
         if (typeof searchSteps[i] != "function") {
-            console.log('remaining locations to check:', locations_ids.slice(locationIndex + 1));
+            if (VERBOSE) console.log('remaining locations to check:', locations_ids.slice(locationIndex + 1));
             i = 0;
             locationIndex++;
             if (locationIndex == locations_ids.length)
