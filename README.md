@@ -42,7 +42,7 @@ To get started, copy `config.json.example` to `config.json`. In your new config,
 
 * **password**: the password to log in with on the GOES website
 
-* **enrollment_location_id**: the value of the enrollment location that you must choose when setting up your appointment. After choosing from the dropdown, find this ID by running this in the console:
+* **enrollment_location_ids**: the values (must be an array of strings) of the enrollment locations that you must choose when setting up your appointment. After choosing from the dropdown, find each ID by running this in the console:
     
         document.querySelector('select[name=selectedEnrollmentCenter]').value
 

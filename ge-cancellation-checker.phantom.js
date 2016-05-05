@@ -22,7 +22,7 @@ else {
 try {
     var contents = fs.read(PWD + '/config.json');
     var settings = JSON.parse(contents);
-    if (!settings.username || !settings.username || !settings.init_url || !settings.enrollment_location_id) {
+    if (!settings.username || !settings.username || !settings.init_url || !settings.enrollment_location_ids) {
         console.log('Missing username, password, enrollment location ID, and/or initial URL. Exiting...');
         phantom.exit();
     }
@@ -52,17 +52,18 @@ page.onConsoleMessage = function(msg) {
 
 page.onError = function(msg, trace) {
     if (!VERBOSE) { return; }
-    console.error('Error on page: ' + msg);
+    console.error('Error on page (', page.url, ' ): ', msg);
 }
 
-page.onCallback = function(query, msg) {
+page.onCallback = function (data) {
+    var query = data.msg;
     if (query == 'username') { return settings.username; }
     if (query == 'password') { return settings.password; }
     if (query == 'fireClick') {
         return function() { return fireClick; } // @todo:david DON'T KNOW WHY THIS DOESN'T WORK! :( Just returns [Object object])
     }
     if (query == 'report-interview-time') {
-        if (VERBOSE) { console.log('Next available appointment is at: ' + msg); }
+        if (VERBOSE) { console.log('Next available appointment at location ', data.location, ' is at: ', data.date); }
         else { console.log(msg); }
         return;  
     }
@@ -73,95 +74,98 @@ page.onCallback = function(query, msg) {
     return null;
 }
 
-page.onLoadStarted = function() { loadInProgress = true; };
-page.onLoadFinished = function() { loadInProgress = false; };
+page.onLoadStarted = function () {
+    loadInProgress = true;
+};
+page.onLoadFinished = function () {
+    // if (VERBOSE) { console.log('Page loaded:', page.url); }
+    loadInProgress = false;
+};
 
 if (VERBOSE) { console.log('Please wait...'); }
 
 page.open(settings.init_url);
-var steps = [
-    function() { // Log in
-        page.evaluate(function() {
+var loginSteps = [
+    function () { // Log in
+        page.evaluate(function () {
             console.log('On GOES login page...');
-            document.querySelector('input[name=username]').value = window.callPhantom('username');
-            document.querySelector('input[name=password]').value = window.callPhantom('password');
+            document.querySelector('input[name=username]').value = window.callPhantom({ msg: 'username' });
+            document.querySelector('input[name=password]').value = window.callPhantom({ msg: 'password' });
             document.querySelector('form[action="/pkmslogin.form"]').submit();
             console.log('Logging in...');
         });
     },
-    function() { // Accept terms
-        page.evaluate(function() {
-            
+    function () { // Accept terms
+        page.evaluate(function () {
+
             function fireClick(el) {
                 var ev = document.createEvent("MouseEvents");
                 ev.initEvent("click", true, true);
                 el.dispatchEvent(ev);
             }
-            
+
             var $acceptTermsBtn = document.querySelector('a[href="/main/goes/HomePagePreAction.do"]');
 
             if (!$acceptTermsBtn) {
-                return window.callPhantom('fatal-error', 'Unable to find terms acceptance button');
+                return window.callPhantom({ msg: 'fatal-error', error: 'Unable to find terms acceptance button' });
             }
 
             fireClick($acceptTermsBtn);
             console.log('Accepting terms...');
         });
     },
-    function() { // main dashboard
-        page.evaluate(function() {
+    function () { // main dashboard
+        page.evaluate(function () {
 
             function fireClick(el) {
                 var ev = document.createEvent("MouseEvents");
                 ev.initEvent("click", true, true);
                 el.dispatchEvent(ev);
             }
-            
+
             var $manageAptBtn = document.querySelector('.bluebutton[name=manageAptm]');
             if (!$manageAptBtn) {
-                return window.callPhantom('fatal-error', 'Unable to find Manage Appointment button');
+                return window.callPhantom({ msg: 'fatal-error', error: 'Unable to find Manage Appointment button' });
             }
 
             fireClick($manageAptBtn);
             console.log('Entering appointment management...');
         });
     },
-    function() {
-        page.evaluate(function() {
+    function () {
+        page.evaluate(function () {
 
             function fireClick(el) {
                 var ev = document.createEvent("MouseEvents");
                 ev.initEvent("click", true, true);
                 el.dispatchEvent(ev);
             }
-            
+
             var $rescheduleBtn = document.querySelector('input[name=reschedule]');
-    
+
             if (!$rescheduleBtn) {
-                return window.callPhantom('fatal-error', 'Unable to find reschedule button. Is it after or less than 24 hrs before your appointment?');
+                return window.callPhantom({ msg: 'fatal-error', error: 'Unable to find reschedule button. Is it after or less than 24 hrs before your appointment?' });
             }
 
             fireClick($rescheduleBtn);
             console.log('Entering rescheduling selection page...');
         });
-    },
-    function() {
+    }];
+
+
+
+var searchSteps = [
+    function(location_id) {
         page.evaluate(function(location_id) {
 
-            function fireClick(el) {
-                var ev = document.createEvent("MouseEvents");
-                ev.initEvent("click", true, true);
-                el.dispatchEvent(ev);
-            }
-
             document.querySelector('select[name=selectedEnrollmentCenter]').value = location_id;
-            fireClick(document.querySelector('input[name=next]'));
-            console.log('Choosing SFO...');
-        }, settings.enrollment_location_id.toString());
+            document.querySelector('form').submit()
+            console.log('Choosing: ', location_id);
+        }, location_id);
     },
-    function() {
+    function(location_id) {
 
-        page.evaluate(function() {
+        page.evaluate(function(location_id) {
 
             // We made it! Now we have to scrape the page for the earliest available date
             
@@ -170,20 +174,56 @@ var steps = [
 
             var full_date = month_year.replace(',', ' ' + date + ',');
             // console.log('');
-            window.callPhantom('report-interview-time', full_date)
+            window.callPhantom({ msg: 'report-interview-time', date: full_date, location: location_id });
             // console.log('The next available appointment is on ' + full_date + '.');
-        });
+        }, location_id);
     }
 ];
 
+function chooseAnotherCenter() {
+    console.log('About to select another center to search...');
+    page.open('https://goes-app.cbp.dhs.gov/main/goes/SelectEnrollmentCenterPreAction.do');
+}
+
 var i = 0;
-interval = setInterval(function() {
-    if (loadInProgress) { return; } // not ready yet...
-    if (typeof steps[i] != "function") {
-        return phantom.exit();
+var locations_ids = settings.enrollment_location_ids;
+function login() {
+    loginInterval = setInterval(function() {
+        if (loadInProgress) { return; } // not ready yet...
+
+        if (typeof loginSteps[i] != "function") {
+            clearInterval(loginInterval);
+            i = 0;
+            return searchForAppointment();
+        }
+        if (VERBOSE) { console.log('Running login step #', i); }
+        loginSteps[i]();
+        i++;
+
+    }, 500);
+}
+
+var locationIndex = 0;
+var searchInterval; 
+function searchForAppointment(location) {
+    if (!location) {
+        searchSteps.splice(0, 0, chooseAnotherCenter); // put this inbetween our location checks.
+        return searchForAppointment(locations_ids[locationIndex])
     }
+    clearInterval(searchInterval);
+    searchInterval = setInterval(function () {
+        if (loadInProgress) { return; } // not ready yet...
+        if (typeof searchSteps[i] != "function") {
+            console.log('remaining locations to check:', locations_ids.slice(locationIndex + 1));
+            i = 0;
+            locationIndex++;
+            if (locationIndex == locations_ids.length)
+                return phantom.exit();
+            return searchForAppointment(locations_ids[locationIndex]);
+        }
+        searchSteps[i](location);
+        i++;
+    }, 500);
+}
 
-    steps[i]();
-    i++;
-
-}, 100);
+login();
