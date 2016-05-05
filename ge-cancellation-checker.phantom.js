@@ -197,7 +197,6 @@ function login() {
             i = 0;
             return searchForAppointment();
         }
-        if (VERBOSE) { console.log('Running login step #', i); }
         loginSteps[i]();
         i++;
 
