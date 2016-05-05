@@ -17,16 +17,18 @@ else {
     PWD = current_path_arr.join('/');
 }
 
+
 // Gather Settings...
 try {
-    var settings = JSON.parse(fs.read(PWD + '/config.json'));
+    var contents = fs.read(PWD + '/config.json');
+    var settings = JSON.parse(contents);
     if (!settings.username || !settings.username || !settings.init_url || !settings.enrollment_location_id) {
         console.log('Missing username, password, enrollment location ID, and/or initial URL. Exiting...');
         phantom.exit();
     }
 }
 catch(e) {
-    console.log('Could not find config.json');
+    console.log('Could not read config.json', e);
     phantom.exit();
 }
 
