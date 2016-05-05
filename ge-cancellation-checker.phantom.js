@@ -64,7 +64,7 @@ page.onCallback = function (data) {
     }
     if (query == 'report-interview-time') {
         data.location_name = locationResolver[data.location_id];
-        if (VERBOSE) { console.log('\nNext available appointment at location ', data.location_id, data.location_name, '  is... \n at >>>>>: ', data.date, '\n'); }
+        if (VERBOSE) { console.log('\nNext available appointment at location #', data.location_id, '\n(', data.location_name, ')\n is at >>>>>: ', data.date, '\n'); }
         else { console.log(msg); }
         return;  
     }
